@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        
+        .burger {
+            width: 30vw;
+            display: flex;
+        
+            .pieces {
+                img {
+                    position: absolute;
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="burger">
+        <div class="pieces">
+            <img src="./image/burger_1.png" >
+            <img src="./image/burger_2.png" >
+            <img src="./image/burger_3.png" >
+            <img src="./image/burger_4.png">
+            <img src="./image/burger_5.png" >
+            <img src="./image/burger_6.png" >
+            <img src="./image/burger_7.png" >
+            <!-- Add more images as needed -->
+        </div>
+        <section>
+            
+        </section>
+    </div>
+    <script>
+    const anim = () => {
+       gsap.registerPlugin(ScrollTrigger);
+const tl1 = gsap.timeline()
+    tl1.from('.burger .pieces img',1,{y:500, stagger:.1, rotation:0});
+    //use scroll trigger to trigger the animation  
+    ScrollTrigger.create({
+        animation: tl1,
+        trigger: '.#section1',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 1,
+        markers: true
+    });
+    };
+document.addEventListener('DOMContentLoaded', anim);
+    </script>
+</body>
+</html>
