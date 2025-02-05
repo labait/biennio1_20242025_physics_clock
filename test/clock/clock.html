@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dividui</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000000;
+            font-family: 'Montserrat', sans-serif;
+            color: white;
+            overflow: hidden;
+            min-height: 100vh;
+            cursor: none;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 900;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .nav-buttons {
+            position: fixed;
+            left: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-button {
+            padding: 8px 24px;
+            font-size: 16px;
+            font-weight: 400;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 24px;
+            background-color: transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .nav-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-button {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .plan-button {
+            background-color: white;
+            color: black;
+            border: none;
+        }
+
+        .create-text {
+            position: fixed;
+            top: 40px;
+            left: 200px;
+            font-size: 20px;
+            z-index: 1000;
+        }
+
+        .create-text span {
+            color: rgb(143, 0, 255);
+            font-style: italic;
+        }
+
+        .clock-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: calc(100% - 80px);
+            height: 100%;
+            margin: 0 40px; /* Add margin of 40px on both sides */
+        }
+
+        .number {
+            position: absolute;
+            font-size: 200px;
+            font-weight: 900;
+            color: white;
+            transform: translate(-80%, -100%);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            user-select: none;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        }
+
+        .clock-hands {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+        }
+
+        .hand {
+            position: absolute;
+            transform-origin: 0% 0%;
+            left: 0;
+            top: 0;
+        }
+
+        .rounded-border {
+            border: 4px solid white;
+            border-radius: 6px;
+        }
+
+        #hour-hand {
+            background: white;
+            height: 4px;
+            width: 100px;
+            border-radius: 6px;
+        }
+
+        #minute-hand {
+            background: white;
+            height: 4px;
+            width: 150px;
+            border-radius: 6px;
+        }
+
+        #second-hand {
+            background: rgb(143, 0, 255);
+            height: 4px;
+            width: 180px;
+            border-radius: 6px;
+        }
+
+        .clock-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .center-dot {
+            width: 20px;
+            height: 20px;
+            background: black;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .center-dot::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: rgb(143, 0, 255);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .cursor {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgb(143, 0, 255);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s linear;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="cursor" id="cursor"></div>
+    
+    <header class="header">
+        <button class="nav-button menu-button">menu</button>
+        <div class="logo">dividui</div>
+        <button class="nav-button plan-button">Plan with me</button>
+    </header>
+
+    <div class="create-text">
+        It's time to <span>create</span>
+    </div>
+
+    <nav class="nav-buttons">
+        <button class="nav-button">hello</button>
+        <button class="nav-button">portfolio</button>
+        <button class="nav-button">project</button>
+        <button class="nav-button">idea</button>
+        <button class="nav-button">collaborate</button>
+    </nav>
+
+    <div class="clock-container" id="clock-container">
+        <div class="clock-hands">
+            <div class="hand" id="hour-hand"></div>
+            <div class="hand" id="minute-hand"></div>
+            <div class="hand" id="second-hand"></div>
+        </div>
+        <div class="clock-center">
+            <div class="center-dot"></div>
+        </div>
+    </div>
+
+    <script>
+        function createClock() {
+            const container = document.getElementById('clock-container');
+            const radius = Math.min(window.innerWidth, window.innerHeight) * 0.25;
+            const center = {
+                x: window.innerWidth / 2,
+                y: window.innerHeight / 2
+            };
+
+            // Create numbers
+            for (let i = 1; i <= 12; i++) {
+                const number = document.createElement('div');
+                number.className = 'number';
+                number.textContent = i;
+                
+                // Calculate position
+                const angle = (i - 3) * (Math.PI / 6); // Start from 3 o'clock
+                const x = center.x + radius * Math.cos(angle);
+                const y = center.y + radius * Math.sin(angle);
+                
+                number.style.left = `${x}px`;
+                number.style.top = `${y}px`;
+
+                // Add hover effect and interaction
+                let isAnimating = false;
+
+                number.addEventListener('mousemove', (e) => {
+                    if (!isAnimating) {
+                        const dx = (e.clientX - x) * 0.1;
+                        const dy = (e.clientY - y) * 0.1;
+                        number.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px)`;
+                    }
+                });
+
+                number.addEventListener('mouseleave', () => {
+                    number.style.transform = 'translate(-50%, -50%)';
+                });
+
+                container.appendChild(number);
+            }
+
+            // Update clock hands
+            function updateClock() {
+                const now = new Date();
+                const hours = now.getHours() % 12;
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+                const milliseconds = now.getMilliseconds();
+
+                // Calculate angles
+                const hourAngle = (hours + minutes / 60) * 30;
+                const minuteAngle = (minutes + seconds / 60) * 6;
+                const secondAngle = (seconds + milliseconds / 1000) * 6;
+
+                // Update hands
+                document.getElementById('hour-hand').style.transform = `rotate(${hourAngle}deg)`;
+                document.getElementById('minute-hand').style.transform = `rotate(${minuteAngle}deg)`;
+                document.getElementById('second-hand').style.transform = `rotate(${secondAngle}deg)`;
+
+                requestAnimationFrame(updateClock);
+            }
+
+            updateClock();
+        }
+
+        // Initialize clock
+        document.addEventListener('DOMContentLoaded', createClock);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            location.reload();
+        });
+
+        // Add custom cursor
+        const cursor = document.getElementById('cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = `${e.clientX}px`;
+            cursor.style.top = `${e.clientY}px`;
+            
+        });
+    </script>
+</body>
+</html>
