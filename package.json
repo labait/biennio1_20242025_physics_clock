@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "poly-decomp": "^0.3.0",
     "tailwindcss": "^4.0.0"
   }
 }

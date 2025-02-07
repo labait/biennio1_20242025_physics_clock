@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>physics clock</title>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <style>
+    .debug {
+      main {  
+        #canvas-container {
+          border: 1px solid #000;
+        }
+      }
+    }
+  </style>
+</head>
+<body class="debug">
+  <div id="debug-panel" class="fixed top-4 right-4 bg-gray-800 text-white p-4 rounded-lg">
+    <div class="mb-4">
+      <label>Gravity X: <span id="gravityXValue">0</span></label>
+      <input type="range" id="gravityX" min="-1" max="1" step="0.1" value="0" class="w-full">
+    </div>
+    <div class="mb-4">
+      <label>Gravity Y: <span id="gravityYValue">1</span></label>
+      <input type="range" id="gravityY" min="-1" max="1" step="0.1" value="1" class="w-full">
+    </div>
+    <div class="mb-4">
+      <label>Restitution: <span id="restitutionValue">0.6</span></label>
+      <input type="range" id="restitution" min="0" max="1" step="0.1" value="0.6" class="w-full">
+    </div>
+  </div>
+  <main class="flex justify-center items-center h-screen w-screen">
+    <div id="canvas-container"></div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/pathseg@1.2.1/pathseg.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/poly-decomp@0.3.0/build/decomp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.js"></script>
+  <script type="module">
+
+    const stageWidth = 800;
+    const stageHeight = 600;
+
+    const Engine = Matter.Engine,
+      Render = Matter.Render,
+      Runner = Matter.Runner,
+      Common = Matter.Common,
+      MouseConstraint = Matter.MouseConstraint,
+      Mouse = Matter.Mouse,
+      Composite = Matter.Composite,
+      Vertices = Matter.Vertices,
+      Svg = Matter.Svg,
+      Bodies = Matter.Bodies;
+
+    Common.setDecomp(decomp);
+
+    const engine = Engine.create(),
+        world = engine.world;
+
+    // Increase physics iterations for better accuracy
+    engine.positionIterations = 6;  // default is 6
+    engine.velocityIterations = 4;   // default is 4
+
+    const render = Render.create({
+        element: document.getElementById('canvas-container'),
+        engine: engine,
+        options: {
+          width: 800, // ad 100% of the container
+          height: 600,
+          pixelRatio: 2,
+          background: '#000000',
+          wireframeBackground: '#222',
+          hasBounds: false,
+          enabled: true,
+          wireframes: false,
+          showSleeping: true,
+          showDebug: true,
+          showBroadphase: false,
+          showBounds: false,
+          showVelocity: false,
+          showCollisions: true,
+          showSeparations: false,
+          showAxes: false,
+          showPositions: false,
+          showAngleIndicator: false,
+          showIds: false,
+          showShadows: true,
+          showVertexNumbers: false,
+          showConvexHulls: false,
+          showInternalEdges: false,
+          showMousePosition: false
+        }
+    });
+    
+    Render.run(render);
+    var runner = Runner.create();
+    Runner.run(runner, engine);
+
+    // add bodies
+    if (typeof fetch !== 'undefined') {
+        var select = function(root, selector) {
+            return Array.prototype.slice.call(root.querySelectorAll(selector));
+        };
+
+        var loadSvg = function(url) {
+            return fetch(url)
+                .then(function(response) { return response.text(); })
+                .then(function(raw) { return (new window.DOMParser()).parseFromString(raw, 'image/svg+xml'); });
+        };
+
+        ([
+            './svg/0.svg', 
+            './svg/1.svg',
+            './svg/2.svg',
+            './svg/3.svg',
+            './svg/4.svg',
+            './svg/5.svg',
+            './svg/6.svg',
+            './svg/7.svg',
+            './svg/8.svg',
+            './svg/9.svg'
+        ]).forEach(function(path, i) { 
+          console.log(path);
+            loadSvg(path).then(function(root) {
+                var color = "#ffffff";//Common.choose(['#f19648', '#f5d259', '#f55a3c', '#063e7b', '#ececd1',]);
+
+                var vertexSets = select(root, 'path')
+                    .map(function(path) { return Vertices.scale(Svg.pathToVertices(path, 30), 0.3, 0.3); });
+
+                Composite.add(world, Bodies.fromVertices(50 + i * 80, 100 + i * 20, vertexSets, {
+                    render: {
+                        fillStyle: color,
+                        strokeStyle: color,
+                        lineWidth: 1
+                    }
+                }, true));
+            });
+        });
+
+    } else {
+        Common.warn('Fetch is not available. Could not load SVG.');
+    }
+
+    Composite.add(world, [
+      Bodies.rectangle(400, 0, 800, 10, { isStatic: true, render: { fillStyle: '#333333' } }),
+      Bodies.rectangle(400, 600, 800, 10, { isStatic: true, render: { fillStyle: '#333333' } }),
+      Bodies.rectangle(800, 300, 10, 600, { isStatic: true, render: { fillStyle: '#333333' } }),
+      Bodies.rectangle(0, 300, 10, 600, { isStatic: true, render: { fillStyle: '#333333' } })
+    ]);
+
+    // add mouse control
+    var mouse = Mouse.create(render.canvas),
+        mouseConstraint = MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: {
+                stiffness: 1,
+                render: {
+                    visible: true
+                }
+            }
+        });
+
+    Composite.add(world, mouseConstraint);
+
+    // keep the mouse in sync with rendering
+    render.mouse = mouse;
+
+    // fit the render viewport to the scene
+    Render.lookAt(render, {
+        min: { x: 0, y: 0 },
+        max: { x: 800, y: 600 }
+    });
+
+    // Debug panel controls
+    const gravityX = document.getElementById('gravityX');
+    const gravityY = document.getElementById('gravityY');
+    const restitution = document.getElementById('restitution');
+    const gravityXValue = document.getElementById('gravityXValue');
+    const gravityYValue = document.getElementById('gravityYValue');
+    const restitutionValue = document.getElementById('restitutionValue');
+
+    gravityX.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        engine.world.gravity.x = value;
+        gravityXValue.textContent = value;
+    });
+
+    gravityY.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        engine.world.gravity.y = value;
+        gravityYValue.textContent = value;
+    });
+
+    restitution.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        restitutionValue.textContent = value;
+        Composite.allBodies(world).forEach(body => {
+            body.restitution = value;
+        });
+    });
+
+    // Set initial gravity
+    engine.world.gravity.x = 0;
+    engine.world.gravity.y = 1;
+
+  </script>
+
+</body>
+</html>
