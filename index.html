@@ -6,6 +6,9 @@
   <title>physics clock</title>
   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
   <style>
+    body {
+      background-color: #000;
+    }
     .debug {
       main {  
         #canvas-container {
@@ -40,7 +43,11 @@
 
     const stageWidth = 800;
     const stageHeight = 600;
+    const wallSize = 100;
+    const backgroundColor = '#060606';
+    const wallColor = '#000000';
 
+    document.body.style.backgroundColor = wallColor;
     const Engine = Matter.Engine,
       Render = Matter.Render,
       Runner = Matter.Runner,
@@ -58,17 +65,17 @@
         world = engine.world;
 
     // Increase physics iterations for better accuracy
-    engine.positionIterations = 6;  // default is 6
-    engine.velocityIterations = 4;   // default is 4
+    engine.positionIterations = 500;  // default is 6
+    engine.velocityIterations = 100;   // default is 4
 
     const render = Render.create({
         element: document.getElementById('canvas-container'),
         engine: engine,
         options: {
-          width: 800, // ad 100% of the container
-          height: 600,
+          width: stageWidth, // ad 100% of the container
+          height: stageHeight,
           pixelRatio: 2,
-          background: '#000000',
+          background: backgroundColor,
           wireframeBackground: '#222',
           hasBounds: false,
           enabled: true,
@@ -127,7 +134,7 @@
                 var vertexSets = select(root, 'path')
                     .map(function(path) { return Vertices.scale(Svg.pathToVertices(path, 30), 0.3, 0.3); });
 
-                Composite.add(world, Bodies.fromVertices(50 + i * 80, 100 + i * 20, vertexSets, {
+                const body = Composite.add(world, Bodies.fromVertices(50 + i * 80, 100 + i * 20, vertexSets, {
                     render: {
                         fillStyle: color,
                         strokeStyle: color,
@@ -141,11 +148,14 @@
         Common.warn('Fetch is not available. Could not load SVG.');
     }
 
+    // https://stackoverflow.com/a/35093569
+    //initEscapedBodiesRetrieval(Composite.allBodies(world), { x: 0, y: 0 });
+
     Composite.add(world, [
-      Bodies.rectangle(400, 0, 800, 10, { isStatic: true, render: { fillStyle: '#333333' } }),
-      Bodies.rectangle(400, 600, 800, 10, { isStatic: true, render: { fillStyle: '#333333' } }),
-      Bodies.rectangle(800, 300, 10, 600, { isStatic: true, render: { fillStyle: '#333333' } }),
-      Bodies.rectangle(0, 300, 10, 600, { isStatic: true, render: { fillStyle: '#333333' } })
+      Bodies.rectangle(0, 0-wallSize/2, stageWidth*2+wallSize*2, wallSize, { isStatic: true, render: { fillStyle: wallColor } }), // top
+      Bodies.rectangle(0, stageHeight+wallSize/2, stageWidth*2, wallSize, { isStatic: true, render: { fillStyle: wallColor } }), // bottom
+      Bodies.rectangle(stageWidth+wallSize/2, 0-wallSize, wallSize, stageHeight*2+wallSize*2, { isStatic: true, render: { fillStyle: wallColor } }), // right
+      Bodies.rectangle(0-wallSize/2, 0, wallSize, stageHeight*2+wallSize*2, { isStatic: true, render: { fillStyle: wallColor } }) // left
     ]);
 
     // add mouse control
@@ -153,7 +163,7 @@
         mouseConstraint = MouseConstraint.create(engine, {
             mouse: mouse,
             constraint: {
-                stiffness: 1,
+                stiffness: 0.2,
                 render: {
                     visible: true
                 }
@@ -202,6 +212,36 @@
     // Set initial gravity
     engine.world.gravity.x = 0;
     engine.world.gravity.y = 1;
+
+
+    /* `allBodies` is a variable that contains all the bodies that can
+ * escape. Use something like `Composite.allBodies(world)` to get 
+ * them all but beware to not include the box's borders which are
+ * also bodies.
+ * `startCoordinates` is an object that contains the x and y
+ * coordinate of the place on the canvas where we should move escaped
+ * bodies to.
+ */
+function initEscapedBodiesRetrieval(allBodies, startCoordinates) {
+
+    function hasBodyEscaped(body) {
+        var x = body.position.x;
+        var y = body.position.y;
+
+        return x < 0 || x > stageWidth || y < 0 || y > stageHeight;
+    }
+
+    setInterval(function() {
+        var i, body;
+
+        for (i = 0; i < allBodies.length; i++) {
+            body = allBodies[i];
+            if (hasBodyEscaped(body)) {
+                Matter.Body.translate(body, { x: (startCoordinates.x - body.position.x), y: (startCoordinates.y - body.position.y) });
+            }
+        }
+    }, 300); /* We do this every 300 msecs */ 
+}
 
   </script>
 
