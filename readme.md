@@ -9,6 +9,9 @@ npm run dev
 
 it can run "statically", ie using "go live" in vscode
 
+## debug
+to activate debug, add `debug` class to body tag
+
 ## references
 - [matter.js](https://brm.io/matter-js/)
 - https://codepen.io/magnum/pen/azoerxp
