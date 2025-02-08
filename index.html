@@ -232,9 +232,10 @@
       items.forEach(item => {
         Composite.remove(world, item.body);
       });
-      const text = new Date()
+      let text = new Date()
       .toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
       .replace(/:/g, ' ');
+      if(isDebug) text = "1234567890".split('').sort(() => Math.random() - 0.5).join('');
       log('text', text);
       const perLine = 8;
       const letterOffset = 100;
