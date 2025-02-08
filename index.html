@@ -6,20 +6,20 @@
   <title>physics clock</title>
   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
   <style>
-    body {
-      background-color: #000;
-    }
     .debug {
       main {  
         #canvas-container {
           border: 1px solid #000;
         }
       }
+      #debug-panel {
+        display: block;
+      }
     }
   </style>
 </head>
-<body class="debug">
-  <div id="debug-panel" class="fixed top-4 right-4 bg-gray-800 text-white p-4 rounded-lg">
+<body class="debug bg-black">
+  <div id="debug-panel" class="hidden fixed top-4 right-4 bg-gray-800 text-white p-4 rounded-lg">
     <div class="mb-4">
       <label>Gravity X: <span id="gravityXValue">0</span></label>
       <input type="range" id="gravityX" min="-1" max="1" step="0.1" value="0" class="w-full">
@@ -33,21 +33,50 @@
       <input type="range" id="restitution" min="0" max="1" step="0.1" value="0.6" class="w-full">
     </div>
   </div>
-  <main class="flex justify-center items-center h-screen w-screen">
-    <div id="canvas-container"></div>
+  <div class="loading flex justify-center items-center h-screen w-screen">
+    <div class="text-white text-2xl">loading assets...</div>
+  </div>
+  <main class="hidden flex justify-center items-center h-screen w-screen">
+    <div class="div">
+      <div id="canvas-container"></div>
+      <div class="action mt-4 flex justify-center items-center">
+        <button id="btn-interact" data-text="click to interact" class="bg-black hover:underline cursor-pointer text-white px-4 py-2 rounded-md"></button>
+      </div>
+    </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/pathseg@1.2.1/pathseg.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/poly-decomp@0.3.0/build/decomp.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.js"></script>
   <script type="module">
-
-    const stageWidth = 800;
-    const stageHeight = 600;
+    const isDebug = document.body.classList.contains('debug');
+    const stageWidth = 1024;
+    const stageHeight = 768;
     const wallSize = 100;
     const backgroundColor = '#060606';
     const wallColor = '#000000';
+    const clockWidth = 300;
+    const clockHeight = 300;
+    const hourHandWidth = 10;  
+    const hourHandLength = clockHeight*1/2;
+    const minuteHandWidth = 5;
+    const minuteHandLength = clockHeight*3/4;
+    const secondHandWidth = 1;
+    const secondHandLength = stageHeight/2-clockHeight/2
 
-    document.body.style.backgroundColor = wallColor;
+    let doRenderText = true;
+
+    const log = (...args) => {
+      if(isDebug) console.log(...args);
+    }
+
+    const select = (root, selector) => {
+      return Array.prototype.slice.call(root.querySelectorAll(selector));
+    };
+
+    const degreesToRadians = (degrees) => {
+      return degrees * (Math.PI / 180);
+    }
+
     const Engine = Matter.Engine,
       Render = Matter.Render,
       Runner = Matter.Runner,
@@ -64,93 +93,248 @@
     const engine = Engine.create(),
         world = engine.world;
 
-    // Increase physics iterations for better accuracy
-    engine.positionIterations = 500;  // default is 6
-    engine.velocityIterations = 100;   // default is 4
+    engine.world.gravity.x = 0;
+    engine.world.gravity.y = 0;
+    engine.positionIterations = 6;  // default is 6
+    engine.velocityIterations = 4;   // default is 4
 
     const render = Render.create({
-        element: document.getElementById('canvas-container'),
-        engine: engine,
-        options: {
-          width: stageWidth, // ad 100% of the container
-          height: stageHeight,
-          pixelRatio: 2,
-          background: backgroundColor,
-          wireframeBackground: '#222',
-          hasBounds: false,
-          enabled: true,
-          wireframes: false,
-          showSleeping: true,
-          showDebug: true,
-          showBroadphase: true,
-          showBounds: false,
-          showVelocity: true,
-          showCollisions: true,
-          showSeparations: false,
-          showAxes: false,
-          showPositions: false,
-          showAngleIndicator: true,
-          showIds: false,
-          showShadows: true,
-          showVertexNumbers: false,
-          showConvexHulls: false,
-          showInternalEdges: true,
-          showMousePosition: false
-        }
+      element: document.getElementById('canvas-container'),
+      engine: engine,
+      options: {
+        width: stageWidth, // ad 100% of the container
+        height: stageHeight,
+        pixelRatio: 2,
+        background: backgroundColor,
+        wireframeBackground: '#222',
+        hasBounds: false,
+        enabled: true,
+        wireframes: false,
+        showSleeping: false,
+        showDebug: isDebug,
+        showBroadphase: isDebug,
+        showBounds: false,
+        showVelocity: isDebug,
+        showCollisions: isDebug,
+        showSeparations: false,
+        showAxes: false,
+        showPositions: false,
+        showAngleIndicator: isDebug,
+        showIds: false,
+        showShadows: isDebug,
+        showVertexNumbers: false,
+        showConvexHulls: false,
+        showInternalEdges: isDebug,
+        showMousePosition: false
+      }
     });
     
     Render.run(render);
     var runner = Runner.create();
     Runner.run(runner, engine);
 
+
+
+    const addBody = () => {
+      const body = Composite.add(
+        world, 
+        Bodies.fromVertices(
+          250 + (i % perLine) * 100,  // x
+          50 + Math.floor(i / perLine) * 200, // y
+          vertexSets, {
+            render: {
+                fillStyle: color,
+                strokeStyle: color,
+                lineWidth: 1
+            }
+          }, 
+          false
+        )
+      );
+      return body;
+    }
+
+
+    const loadSvg = function(url) {
+      return fetch(url)
+        .then(function(response) { return response.text(); })
+        .then(function(raw) { return (new window.DOMParser()).parseFromString(raw, 'image/svg+xml'); });
+    };
+
+
+    const loadAssets = async () => {
+      const svgs = {
+        '0': './svg/0.svg', 
+        '1': './svg/1.svg',
+        '2': './svg/2.svg',
+        '3': './svg/3.svg',
+        '4': './svg/4.svg',
+        '5': './svg/5.svg',
+        '6': './svg/6.svg',
+        '7': './svg/7.svg',
+        '8': './svg/8.svg',
+        '9': './svg/9.svg',
+        '.': './svg/dot.svg',
+        '/': './svg/slash.svg',
+        ':': './svg/colon.svg',
+      }
+      for (const key of Object.keys(svgs)) {
+        const path = svgs[key];
+        const root = await loadSvg(path);
+        const color = "#ffffff"; //Common.choose(['#f19648', '#f5d259', '#f55a3c', '#063e7b', '#ececd1',]);
+        const vertexSets = select(root, 'path')
+          .map(function(path) { return Vertices.scale(Svg.pathToVertices(path, 30), 0.3, 0.3); });
+        assets.push({
+          key: key,
+          path: svgs[key],
+          vertexSets: vertexSets,
+        });
+        log(key);
+      }    
+      document.querySelector('.loading').classList.add('hidden');
+      document.querySelector('main').classList.remove('hidden');
+      drawClock();
+    }
+
+
+    const moveAndRotateBody = (body, targetX, targetY, targetAngle, forceMagnitude = 0.02, maxAngularSpeed = 0.2) => {
+      Matter.Events.on(engine, "beforeUpdate", function() {
+          // Movimento con forza
+          let dx = targetX - body.position.x;
+          let dy = targetY - body.position.y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance > 1) { // Fermarsi quando vicino
+              let forceX = (dx / distance) * forceMagnitude;
+              let forceY = (dy / distance) * forceMagnitude;
+              Matter.Body.applyForce(body, body.position, { x: forceX, y: forceY });
+          }
+
+          // ROTAZIONE LIMITATA SENZA SUPERARE L'ANGOLO TARGET
+          let angleDiff = targetAngle - body.angle;
+
+          // Normalizziamo la differenza angolare per evitare rotazioni eccessive
+          angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+
+          if (Math.abs(angleDiff) > 0.01) { // Fermarsi quando vicino all'angolo target
+              let angularSpeed = Math.min(Math.abs(angleDiff) * 2, maxAngularSpeed);
+              Matter.Body.setAngularVelocity(body, Math.sign(angleDiff) * angularSpeed);
+          } else {
+              Matter.Body.setAngularVelocity(body, 0); // Ferma la rotazione quando vicino al target
+              Matter.Body.setAngle(body, targetAngle); // Imposta esattamente l'angolo per evitare errori di precisione
+          }
+      });
+    }
+
+    const drawText = () => {
+      //console.log("doRenderText", doRenderText);
+      if(!doRenderText) return;
+      items.forEach(item => {
+        Composite.remove(world, item.body);
+      });
+      const text = new Date()
+      .toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      .replace(/:/g, ' ');
+      log('text', text);
+      const perLine = 8;
+      const letterOffset = 100;
+      const spaceOffset = 80;
+      const initX = 200;
+      const initY = 150;
+      let x = initX;
+      let y = initY;
+      text.split('').forEach((key, i) => { 
+        if(key == ' ') {
+          x += spaceOffset;
+          return
+        }
+        /**/
+        const asset = assets.find(a => a.key == key);
+        const bodyText = Bodies.fromVertices(
+          x,
+          y,
+          asset.vertexSets, {
+            render: {
+              fillStyle: "white",
+              strokeStyle: "white",
+              lineWidth: 1
+            }
+          }, 
+          false
+        )
+        /*
+        let bodyWrapper = Matter.Body.create(
+          x, 
+          y, 
+          100, 
+          200, 
+          { 
+            isStatic: false, 
+            render: { fillStyle: "white", strokeStyle: "red", lineWidth: 1}
+          }
+        );
+        */
+        items[i] = {
+          key: key,
+          asset: asset,
+          body: bodyText, 
+          initX: x,
+          initY: y
+        }
+        Composite.add(world, bodyText);
+        
+        x += letterOffset;
+        if(i % perLine == perLine-1) {
+          x = initX;
+          y += letterOffset;
+        }
+      });
+      log(items)
+    }
+
+
+    const clockObjects = {}
+    const clockCenter = { x: stageWidth/2, y: stageHeight/2 };
+    const drawClock = () => {
+      clockObjects.hourHand = Bodies.rectangle(stageWidth/2, stageHeight/2-hourHandLength/2, hourHandWidth, hourHandLength, { isStatic: true, render: { fillStyle: '#666666' } });
+      Composite.add(world, clockObjects.hourHand);
+      clockObjects.minuteHand = Bodies.rectangle(stageWidth/2, stageHeight/2-minuteHandLength/2, minuteHandWidth, minuteHandLength, { isStatic: true, render: { fillStyle: '#666666' } });
+      Composite.add(world, clockObjects.minuteHand);
+      clockObjects.secondHand = Bodies.rectangle(stageWidth/2, secondHandLength, secondHandWidth, clockHeight, { isStatic: true, render: { fillStyle: '#c00' } });
+      Composite.add(world, clockObjects.secondHand);
+
+      clockUpdate();
+      setInterval(clockUpdate, 1000);
+      drawText();
+    }
+
+    
+    const clockUpdate = () => {
+      drawText(); 
+      const now = new Date();
+      const hours = now.getHours();
+      const hoursAngle = degreesToRadians(hours*30) - clockObjects.hourHand.angle;
+      Matter.Body.rotate(clockObjects.hourHand, hoursAngle, clockCenter);
+      const minutes = now.getMinutes();
+      const minutesAngle = degreesToRadians(minutes*6) - clockObjects.minuteHand.angle;
+      Matter.Body.rotate(clockObjects.minuteHand, minutesAngle, clockCenter);
+      const seconds = now.getSeconds();
+      const secondsAngle = degreesToRadians(seconds*6) - clockObjects.secondHand.angle;
+      Matter.Body.rotate(clockObjects.secondHand, secondsAngle, clockCenter);
+    }
+
+
+    const assets = [];
+    const items = [];
     // add bodies
     if (typeof fetch !== 'undefined') {
-        var select = function(root, selector) {
-            return Array.prototype.slice.call(root.querySelectorAll(selector));
-        };
-
-        var loadSvg = function(url) {
-            return fetch(url)
-                .then(function(response) { return response.text(); })
-                .then(function(raw) { return (new window.DOMParser()).parseFromString(raw, 'image/svg+xml'); });
-        };
-
-        ([
-            './svg/0.svg', 
-            './svg/1.svg',
-            './svg/2.svg',
-            './svg/3.svg',
-            './svg/4.svg',
-            './svg/5.svg',
-            './svg/6.svg',
-            './svg/7.svg',
-            './svg/8.svg',
-            './svg/9.svg'
-        ]).forEach(function(path, i) { 
-          console.log(path);
-            loadSvg(path).then(function(root) {
-                var color = "#ffffff";//Common.choose(['#f19648', '#f5d259', '#f55a3c', '#063e7b', '#ececd1',]);
-
-                var vertexSets = select(root, 'path')
-                    .map(function(path) { return Vertices.scale(Svg.pathToVertices(path, 30), 0.3, 0.3); });
-
-                const body = Composite.add(world, Bodies.fromVertices(50 + i * 80, 100 + i * 20, vertexSets, {
-                    render: {
-                        fillStyle: color,
-                        strokeStyle: color,
-                        lineWidth: 1
-                    }
-                }, true));
-            });
-        });
-
+      loadAssets();
     } else {
-        Common.warn('Fetch is not available. Could not load SVG.');
+      Common.warn('Fetch is not available. Could not load SVG.');
     }
 
     // https://stackoverflow.com/a/35093569
     //initEscapedBodiesRetrieval(Composite.allBodies(world), { x: 0, y: 0 });
-
     Composite.add(world, [
       Bodies.rectangle(0, 0-wallSize/2, stageWidth*2+wallSize*2, wallSize, { isStatic: true, render: { fillStyle: wallColor } }), // top
       Bodies.rectangle(0, stageHeight+wallSize/2, stageWidth*2, wallSize, { isStatic: true, render: { fillStyle: wallColor } }), // bottom
@@ -160,26 +344,23 @@
 
     // add mouse control
     var mouse = Mouse.create(render.canvas),
-        mouseConstraint = MouseConstraint.create(engine, {
-            mouse: mouse,
-            constraint: {
-                stiffness: 0.2,
-                render: {
-                    visible: true
-                }
-            }
-        });
+      mouseConstraint = MouseConstraint.create(engine, {
+        mouse: mouse,
+        constraint: {
+          stiffness: 0.2,
+          render: {
+            visible: true
+          }
+        }
+      });
 
     Composite.add(world, mouseConstraint);
-
-    // keep the mouse in sync with rendering
     render.mouse = mouse;
-
-    // fit the render viewport to the scene
     Render.lookAt(render, {
         min: { x: 0, y: 0 },
-        max: { x: 800, y: 600 }
+        max: { x: stageWidth, y: stageHeight }
     });
+
 
     // Debug panel controls
     const gravityX = document.getElementById('gravityX');
@@ -209,40 +390,27 @@
         });
     });
 
-    // Set initial gravity
-    engine.world.gravity.x = 0;
-    engine.world.gravity.y = 1;
-
-
-    /* `allBodies` is a variable that contains all the bodies that can
- * escape. Use something like `Composite.allBodies(world)` to get 
- * them all but beware to not include the box's borders which are
- * also bodies.
- * `startCoordinates` is an object that contains the x and y
- * coordinate of the place on the canvas where we should move escaped
- * bodies to.
- */
-function initEscapedBodiesRetrieval(allBodies, startCoordinates) {
-
-    function hasBodyEscaped(body) {
-        var x = body.position.x;
-        var y = body.position.y;
-
-        return x < 0 || x > stageWidth || y < 0 || y > stageHeight;
-    }
-
-    setInterval(function() {
-        var i, body;
-
-        for (i = 0; i < allBodies.length; i++) {
-            body = allBodies[i];
-            if (hasBodyEscaped(body)) {
-                Matter.Body.translate(body, { x: (startCoordinates.x - body.position.x), y: (startCoordinates.y - body.position.y) });
-            }
-        }
-    }, 300); /* We do this every 300 msecs */ 
-}
-
+    // interact
+    const btnInteract = document.getElementById('btn-interact');
+    btnInteract.textContent = btnInteract.getAttribute('data-text');
+    btnInteract.addEventListener('click', (e) => {
+      if(doRenderText) {
+        btnInteract.textContent = 'restore';
+        doRenderText = false;
+        engine.world.gravity.y = 1;
+      } else {
+        btnInteract.textContent = btnInteract.getAttribute('data-text');
+        engine.world.gravity.y = 0;
+        // move body to specifi x,y
+        items.forEach(item => {
+          moveAndRotateBody(item.body, item.initX, item.initY, 0);
+        });
+        setTimeout(() => {
+          doRenderText = true;
+        }, 3000);
+      }
+      log('click', e);
+    });
   </script>
 
 </body>
