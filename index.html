@@ -58,9 +58,9 @@
     const clockHeight = 300;
     const hourHandWidth = 10;  
     const hourHandLength = clockHeight*1/2;
-    const minuteHandWidth = 5;
+    const minuteHandWidth = 10;
     const minuteHandLength = clockHeight*3/4;
-    const secondHandWidth = 1;
+    const secondHandWidth = 2;
     const secondHandLength = stageHeight/2-clockHeight/2
 
     let doRenderText = true;
@@ -302,7 +302,7 @@
       Composite.add(world, clockObjects.hourHand);
       clockObjects.minuteHand = Bodies.rectangle(stageWidth/2, stageHeight/2-minuteHandLength/2, minuteHandWidth, minuteHandLength, { isStatic: true, render: { fillStyle: '#666666' } });
       Composite.add(world, clockObjects.minuteHand);
-      clockObjects.secondHand = Bodies.rectangle(stageWidth/2, secondHandLength, secondHandWidth, clockHeight, { isStatic: true, render: { fillStyle: '#c00' } });
+      clockObjects.secondHand = Bodies.rectangle(stageWidth/2, stageHeight/2-minuteHandLength/2, secondHandWidth, secondHandLength, { isStatic: true, render: { fillStyle: '#c00' } });
       Composite.add(world, clockObjects.secondHand);
 
       clockUpdate();
