@@ -64,6 +64,7 @@
     const secondHandLength = stageHeight/2-clockHeight/2
 
     let doRenderText = true;
+    let doLoop = true;
 
     const log = (...args) => {
       if(isDebug) console.log(...args);
@@ -305,7 +306,7 @@
       Composite.add(world, clockObjects.secondHand);
 
       clockUpdate();
-      setInterval(clockUpdate, 1000);
+      if(doLoop) setInterval(clockUpdate, 1000);
       drawText();
     }
 
